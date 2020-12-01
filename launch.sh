@@ -67,12 +67,16 @@ if [ "$1" == "--master" ]
 
         # Upload join file
         printf "\\n\\n\\t### -> Upload join file\\n\\n"
-        # aws s3 rm s3://tarc-final/join-command.sh #if needed delete
-        aws s3 cp “./join-command.sh” s3://tarc-final/join-command.sh
+        aws s3 cp "./join-command.sh" s3://tarc-final/join-command.sh
 
         # Run Pods
+        printf "\\n\\n\\t### -> Run Pods\\n\\n"
+        curl "https://raw.githubusercontent.com/danilojpferreira/tarc_final/main/run-pods.sh" -o "run-pods.sh"
+        sudo sh ./run-pods.sh
     else
         printf "\\n\\n\\t### -> I'm a Node!\\n\\n"
-        # Get join file
-        # Run config_node.yml if is Node
+        printf "\\n\\n\\t### -> Getting Join File\\n\\n"
+        curl "https://tarc-final.s3.amazonaws.com/join-command.sh" -o "join-command.sh"
+        printf "\\n\\n\\t### -> Joing\\n\\n"
+        sudo sh ./join-command.sh
 fi
