@@ -19,6 +19,8 @@
       when: ansible_swaptotal_mb > 0
       become: yes
 
+#Execução e configuração do cluster Kubernetes
+
     - name: Reinicia Kubelet
       service:
         name: kubelet
@@ -27,7 +29,7 @@
       ignore_errors: yes
 
     - name: Inicia o cluster Kubernetes
-      command: kubeadm init
+      command: kubeadm init --ignore-preflight-errors=NumCPU
       become: yes
 
     - name: Cria a estrutura de diretórios para o funcionamento do Kubernetes
@@ -36,9 +38,11 @@
         state: directory
       become: yes
 
-    - name: Copia as configurações do kubernetes para o diretório do usuário vagrant
+    - name: Copia as configurações do kubernetes para o diretório do usuário 
       command: cp -i /etc/kubernetes/admin.conf /home/.kube/config
       become: yes
+
+# Ajuste dos plugins de overlay e geracão do token de entrada
 
     - name: Instala o plugin Weave para gerenciar a rede de overlay no Kubernetes
       command: kubectl apply -f ./net.yaml

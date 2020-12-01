@@ -10,7 +10,10 @@ curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
 sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
 sudo apt update
 sudo apt install -y docker-ce docker-ce-cli containerd.io
-
+sudo mkdir -p /etc/systemd/system/docker.service.d
+sudo systemctl daemon-reload
+sudo systemctl restart docker
+sudo systemctl enable docker
 # Install Ansible
 sudo apt update
 sudo apt-add-repository --yes --update ppa:ansible/ansible
@@ -18,8 +21,10 @@ sudo apt install -y ansible
 
 #Install Kubernets
 sudo apt update
-curl -s https://packages.cloud.google.com/apt/doc/apt-key.gpg | sudo apt-key add -
+curl -s https://packages.cloud.google.com/apt/doc/apt-key.gpg | sudo apt-key add
+sudo apt-add-repository "deb http://apt.kubernetes.io/ kubernetes-xenial main"
 sudo apt install -y kubelet kubeadm kubectl python
+sudo apt-mark hold kubeadm kubelet kubectl
 
 
 if ["$0" == "master"]; then 
@@ -38,6 +43,7 @@ if ["$0" == "master"]; then
         ansible-playbook ./config_kube.yml
         
         # Upload join file
+        # aws s3 rm s3://tarc-final/join-command.sh #if needed delete
         aws s3 cp “./join-command.sh” s3://tarc-final/join-command.sh
 
         # Run Pods
