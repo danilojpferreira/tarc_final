@@ -1,0 +1,53 @@
+---
+- hosts: all
+  tasks:
+
+# Configurações gerais do cluster
+
+    - name: Remove swapfile de /etc/fstab
+      mount:
+        name: "{{ item }}"
+        fstype: swap
+        state: absent
+      with_items:
+        - swap
+        - none
+      become: yes
+
+    - name: Desabilita swap
+      command: swapoff -a
+      when: ansible_swaptotal_mb > 0
+      become: yes
+
+    - name: Reinicia Kubelet
+      service:
+        name: kubelet
+        daemon_reload: yes
+        state: restarted
+      ignore_errors: yes
+
+    - name: Inicia o cluster Kubernetes
+      command: kubeadm init
+      become: yes
+
+    - name: Cria a estrutura de diretórios para o funcionamento do Kubernetes
+      file:
+        path: /home/.kube
+        state: directory
+      become: yes
+
+    - name: Copia as configurações do kubernetes para o diretório do usuário vagrant
+      command: cp -i /etc/kubernetes/admin.conf /home/.kube/config
+      become: yes
+
+    - name: Instala o plugin Weave para gerenciar a rede de overlay no Kubernetes
+      command: kubectl apply -f ./net.yaml
+
+    - name: Salva o token para entrada de novos nós no cluster
+      command: kubeadm token create --print-join-command
+      register: join_command
+      become: yes
+
+    - name: Copia o token para entrada de novos nós no cluster em um arquivo
+      become: false
+      local_action: copy content="{{ join_command.stdout_lines[0] }}" dest="./join-command.sh"
