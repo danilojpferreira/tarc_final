@@ -36,7 +36,7 @@ printf "\\n\\n\\t### -> Enable the iptables bridge\\n\\n"
 echo "net.bridge.bridge-nf-call-iptables=1" | sudo tee -a /etc/sysctl.conf
 sudo sysctl -p
 
-if [ "$0" == "master" ]
+if [ "$1" == "--master" ]
     then 
         printf "\\n\\n\\t### -> I'm the Master!\\n\\n"
         # Install and configure AWS account (need to upload config file)
@@ -75,5 +75,4 @@ if [ "$0" == "master" ]
         printf "\\n\\n\\t### -> I'm a Node!\\n\\n"
         # Get join file
         # Run config_node.yml if is Node
-
 fi
