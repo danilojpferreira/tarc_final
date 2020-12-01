@@ -2,6 +2,11 @@
 - hosts: localhost
   tasks:
 
+    - name: Salva o token para entrada de novos nós no cluster
+      command: kubeadm token create --print-join-command
+      register: join_command
+      become: yes
+
     - name: Copia o token para entrada de novos nós no cluster em um arquivo
       become: false
       local_action: copy content="{{ join_command.stdout_lines[0] }}" dest="./join-command.sh"
