@@ -38,7 +38,7 @@ sudo sysctl -p
 
 master="master"
 
-if ["$0" = "$master"]
+if [ "$0" = "$master" ]
     then 
         printf "\\n\\n\\t### -> I'm the Master!\\n\\n"
         # Install and configure AWS account (need to upload config file)
@@ -74,6 +74,8 @@ if ["$0" = "$master"]
 
         # Run Pods
     else
+        printf "\\n\\n\\t### -> I'm a Node!\\n\\n"
         # Get join file
         # Run config_node.yml if is Node
+
 fi
