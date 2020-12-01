@@ -1,3 +1,5 @@
+#!/bin/bash
+
 #Update packages
 sudo apt update - y && sudo apt upgrade -y
 
@@ -18,3 +20,26 @@ sudo apt install -y ansible
 sudo apt update -y
 curl -s https://packages.cloud.google.com/apt/doc/apt-key.gpg | sudo apt-key add -
 sudo apt install -y kubelet kubeadm kubectl python
+
+
+if [$1 === 'master'] 
+    then 
+        # Install and configure AWS account (need to upload config file)
+        curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+        unzip awscliv2.zip
+        sudo ./aws/install
+        aws configure set aws_access_key_id AKIARPIPWM5GVPWQYL3W 
+        aws configure set aws_secret_access_key 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 
+        aws configure set region us-west-2
+
+        # Run config_kube.yml
+        ansible-playbook https://raw.githubusercontent.com/danilojpferreira/tarc_final/main/config_kube.yml
+        
+        # Upload join file
+        aws s3 cp “./join-command.sh” s3://tarc-final/join-command.sh
+
+        # Run Pods
+    else
+        # Get join file
+        # Run config_node.yml if is Node
+fi
