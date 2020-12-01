@@ -33,7 +33,9 @@ if [$1 === 'master']
         aws configure set region us-west-2
 
         # Run config_kube.yml
-        ansible-playbook https://raw.githubusercontent.com/danilojpferreira/tarc_final/main/config_kube.yml
+        curl "https://raw.githubusercontent.com/danilojpferreira/tarc_final/main/config_kube.yml" -o "config_kube.yml"
+        curl "https://raw.githubusercontent.com/danilojpferreira/tarc_final/main/net.yaml" -o "net.yaml"
+        ansible-playbook ./config_kube.yml
         
         # Upload join file
         aws s3 cp “./join-command.sh” s3://tarc-final/join-command.sh

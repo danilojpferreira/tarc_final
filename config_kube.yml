@@ -41,7 +41,7 @@
       become: yes
 
     - name: Instala o plugin Weave para gerenciar a rede de overlay no Kubernetes
-      command: kubectl apply -f https://raw.githubusercontent.com/danilojpferreira/tarc_final/main/net.yaml
+      command: kubectl apply -f ./net.yaml
 
     - name: Salva o token para entrada de novos nós no cluster
       command: kubeadm token create --print-join-command
