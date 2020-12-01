@@ -22,8 +22,7 @@ curl -s https://packages.cloud.google.com/apt/doc/apt-key.gpg | sudo apt-key add
 sudo apt install -y kubelet kubeadm kubectl python
 
 
-if ["$0" == "master"] 
-    then 
+if ["$0" == "master"]; then 
         # Install and configure AWS account (need to upload config file)
         curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
         unzip awscliv2.zip
