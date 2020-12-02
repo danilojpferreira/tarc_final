@@ -1,5 +1,29 @@
 #!/bin/bash
 
+for ((i=1;i<=$#;i++)); 
+do
+
+    if [ ${!i} = "--type" ] 
+    then ((i++)) 
+        type=${!i};
+
+    elif [ ${!i} = "--workers" ];
+    then ((i++)) 
+        workers=${!i};  
+
+    elif [ ${!i} = "--runScaleOnly" ];
+    then ((i++)) 
+        runScaleOnly=${!i};  
+
+    elif [ ${!i} = "--runScaleOnlyWorkers" ];
+    then ((i++)) 
+        runScaleOnlyWorkers=${!i};  
+    fi
+
+done;
+
+#echo $type $workers $runScaleOnly $runScaleOnlyWorkers
+
 #Update packages
 printf "\\n\\n\\t### -> Update Packages\\n\\n"
 sudo apt update && sudo apt upgrade -y
@@ -36,9 +60,9 @@ printf "\\n\\n\\t### -> Enable the iptables bridge\\n\\n"
 echo "net.bridge.bridge-nf-call-iptables=1" | sudo tee -a /etc/sysctl.conf
 sudo sysctl -p
 
-if [ "$1" == "--master" ]
+if [ $type = "master" ]
     then 
-        printf "\\n\\n\\t### -> I'm the Master!\\n\\n"
+        printf "\\n\\n\\t### -> I'm the Master Node!\\n\\n"
         # Install and configure AWS account (need to upload config file)
         printf "\\n\\n\\t### -> Install and configure AWS account (need to upload config file)!\\n\\n"
         sudo apt install -y unzip
@@ -73,8 +97,12 @@ if [ "$1" == "--master" ]
         printf "\\n\\n\\t### -> Run Pods\\n\\n"
         curl "https://raw.githubusercontent.com/danilojpferreira/tarc_final/main/run-pods.sh" -o "run-pods.sh"
         sudo sh ./run-pods.sh
+
+        # Create others instances
+        #aws ec2 run-instances --image-id ami-xxxxxxxx --count 1 --instance-type t2.micro --key-name MyKeyPair --security-group-ids sg-903004f8 --subnet-id subnet-6e7f829e
+
     else
-        printf "\\n\\n\\t### -> I'm a Node!\\n\\n"
+        printf "\\n\\n\\t### -> I'm a Worker Node!\\n\\n"
         printf "\\n\\n\\t### -> Getting Join File\\n\\n"
         curl "https://tarc-final.s3.amazonaws.com/join-command.sh" -o "join-command.sh"
         printf "\\n\\n\\t### -> Joing\\n\\n"
