@@ -115,6 +115,8 @@ if [ $type = "master" ]; then
     # Create others instances
     for counter in {1..$workers}; do
         aws ec2 run-instances --region $region --image-id ami-0885b1f6bd170450c --count 1 --instance-type $instanceType --key-name $keyName --security-group-ids $securityGroups --subnet-id $subnetId --tag-specifications "ResourceType=instance,Tags=[{Key=nodeType,Value=worker},{Key=nodeReference,Value=$counter}]" "ResourceType=volume,Tags=[{Key=nodeType,Value=worker},{Key=nodeReference,Value=$counter}]" --user-data file://launch.sh.txt
+        instance=(aws ec2 describe-instances --filters \'Name=tag:nodeReference,Values=$counter\' --query Reservations[*].Instances[*].[InstanceId] --output text)
+        aws elbv2 register-targets --target-group-arn arn:aws:elasticloadbalancing:us-east-1:101501527885:targetgroup/all-instances/4d9b97f60837a331 --targets Id=$instance
     done
 else
     printf "\\n\\n\\t### -> I'm a Worker Node!\\n\\n"

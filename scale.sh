@@ -40,10 +40,12 @@ then
     curl "https://raw.githubusercontent.com/danilojpferreira/tarc_final/main/launch.sh" -o "launch.sh"
     for counter in {1..$incrementWorkers}; do 
         aws ec2 run-instances --region $region --image-id ami-0885b1f6bd170450c --count 1 --instance-type $instanceType --key-name $keyName --security-group-ids $securityGroups --subnet-id $subnetId --tag-specifications \'ResourceType=instance,Tags=[{Key=nodeType,Value=worker},{Key=nodeReference,Value=$counter}]\' \'ResourceType=volume,Tags=[{Key=nodeType,Value=worker},{Key=nodeReference,Value=$counter}]\'  --user-data file://launch.sh
+        instance=(aws ec2 describe-instances --filters \'Name=tag:nodeReference,Values=$counter\' --query Reservations[*].Instances[*].[InstanceId] --output text)
+        aws elbv2 register-targets --target-group-arn arn:aws:elasticloadbalancing:us-east-1:101501527885:targetgroup/all-instances/4d9b97f60837a331 --targets Id=$instance
     done
 
 else
     inverted=$incrementWorkers*-1
-    instances=aws ec2 describe-instances --filters "Name=tag:nodeType,Values=worker" --max-items $inverted --query Reservations[*].Instances[*].[InstanceId] --output text
+    instances=(aws ec2 describe-instances --filters "Name=tag:nodeType,Values=worker" --max-items $inverted --query Reservations[*].Instances[*].[InstanceId] --output text)
     aws ec2 terminate-instances --instance-ids $instances
 fi
