@@ -85,7 +85,7 @@ if [ $type = "master" ]; then
     sudo ./aws/install
     aws configure set aws_access_key_id AKIARPIPWM5GVPWQYL3W
     aws configure set aws_secret_access_key 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
-    aws configure set region us-west-2
+    aws configure set region us-east-1
 
     # Run init kube
     printf "\\n\\n\\t### -> Run init kube\\n\\n"
@@ -114,8 +114,8 @@ if [ $type = "master" ]; then
 
     # Create others instances
     for counter in {1..$workers}; do
-        aws ec2 run-instances --region $region --image-id ami-0885b1f6bd170450c --count 1 --instance-type $instanceType --key-name $keyName --security-group-ids $securityGroups --subnet-id $subnetId --tag-specifications "ResourceType=instance,Tags=[{Key=nodeType,Value=worker},{Key=nodeReference,Value=$counter}]" "ResourceType=volume,Tags=[{Key=nodeType,Value=worker},{Key=nodeReference,Value=$counter}]" --user-data file://launch.sh.txt
-        instance=(aws ec2 describe-instances --filters \'Name=tag:nodeReference,Values=$counter\' --query Reservations[*].Instances[*].[InstanceId] --output text)
+        aws ec2 run-instances --region $region --image-id ami-0885b1f6bd170450c --count 1 --instance-type $instanceType --key-name $keyName --security-group-ids $securityGroups --subnet-id $subnetId --tag-specifications "ResourceType=instance,Tags=[{Key=nodeType,Value=worker},{Key=nodeReference,Value=$counter}]" "ResourceType=volume,Tags=[{Key=nodeType,Value=worker},{Key=nodeReference,Value=$counter}]" --user-data file://launch.sh
+        instance=$(aws ec2 describe-instances --region $region --filters "Name=tag:nodeReference,Values=$counter" --query Reservations[*].Instances[*].[InstanceId] --output text)
         aws elbv2 register-targets --target-group-arn arn:aws:elasticloadbalancing:us-east-1:101501527885:targetgroup/all-instances/4d9b97f60837a331 --targets Id=$instance
     done
 else
