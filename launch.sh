@@ -1,5 +1,12 @@
 #!/bin/bash
 
+type='node'
+workers='1'
+instanceType='t2.micro'
+subnetId='subnet-3a0b891b'
+keyName='tarc_key'
+securityGroups="sg-06e184115cac1dcc6 sg-b6276e83"
+
 for ((i=1;i<=$#;i++)); 
 do
 
@@ -11,18 +18,25 @@ do
     then ((i++)) 
         workers=${!i};  
 
-    elif [ ${!i} = "--runScaleOnly" ];
+    elif [ ${!i} = "--instanceType" ];
     then ((i++)) 
-        runScaleOnly=${!i};  
+        instanceType=${!i};  
 
-    elif [ ${!i} = "--runScaleOnlyWorkers" ];
+    elif [ ${!i} = "--subnetId" ];
     then ((i++)) 
-        runScaleOnlyWorkers=${!i};  
+        subnetId=${!i};  
+
+    elif [ ${!i} = "--keyName" ];
+    then ((i++)) 
+        keyName=${!i};  
+
+    elif [ ${!i} = "--securityGroups" ];
+    then ((i++)) 
+        securityGroups=${!i};  
+
     fi
 
 done;
-
-#echo $type $workers $runScaleOnly $runScaleOnlyWorkers
 
 #Update packages
 printf "\\n\\n\\t### -> Update Packages\\n\\n"
@@ -99,8 +113,9 @@ if [ $type = "master" ]
         sudo sh ./run-pods.sh
 
         # Create others instances
-        #aws ec2 run-instances --image-id ami-xxxxxxxx --count 1 --instance-type t2.micro --key-name MyKeyPair --security-group-ids sg-903004f8 --subnet-id subnet-6e7f829e
-
+        for counter in {1..$workers}; do 
+            aws ec2 run-instances --image-id ami-0885b1f6bd170450c --count 1 --instance-type $instanceType --key-name $keyName --security-group-ids $securityGroups --subnet-id $subnetId --tag-specifications "ResourceType=instance,Tags=[{Key=nodeType,Value=worker},{Key=nodeReference,Value=$counter}]" "ResourceType=volume,Tags=[{Key=nodeType,Value=worker},{Key=nodeReference,Value=$counter}]" --user-data file://launch.sh.txt
+        done
     else
         printf "\\n\\n\\t### -> I'm a Worker Node!\\n\\n"
         printf "\\n\\n\\t### -> Getting Join File\\n\\n"
