@@ -1,42 +1,43 @@
 #!/bin/bash
 
-type='node'
-workers='1'
-instanceType='t2.micro'
-subnetId='subnet-3a0b891b'
-keyName='tarc_key'
+type=node
+workers=1
+instanceType=t2.micro
+subnetId=subnet-3a0b891b
+keyName=tarc_key
+region=us-east-1
 securityGroups="sg-06e184115cac1dcc6 sg-b6276e83"
 
-for ((i=1;i<=$#;i++)); 
-do
+for ((i = 1; i <= $#; i++)); do
+    if [ ${!i} = "--type" ]; then
+        ((i++))
+        type=${!i}
 
-    if [ ${!i} = "--type" ] 
-    then ((i++)) 
-        type=${!i};
+    elif [ ${!i} = "--workers" ]; then
+        ((i++))
+        workers=${!i}
 
-    elif [ ${!i} = "--workers" ];
-    then ((i++)) 
-        workers=${!i};  
+    elif [ ${!i} = "--instanceType" ]; then
+        ((i++))
+        instanceType=${!i}
 
-    elif [ ${!i} = "--instanceType" ];
-    then ((i++)) 
-        instanceType=${!i};  
+    elif [ ${!i} = "--subnetId" ]; then
+        ((i++))
+        subnetId=${!i}
 
-    elif [ ${!i} = "--subnetId" ];
-    then ((i++)) 
-        subnetId=${!i};  
+    elif [ ${!i} = "--keyName" ]; then
+        ((i++))
+        keyName=${!i}
 
-    elif [ ${!i} = "--keyName" ];
-    then ((i++)) 
-        keyName=${!i};  
+    elif [ ${!i} = "--securityGroups" ]; then
+        ((i++))
+        securityGroups=${!i}
 
-    elif [ ${!i} = "--securityGroups" ];
-    then ((i++)) 
-        securityGroups=${!i};  
-
+    elif [ ${!i} = "--region" ]; then
+        ((i++))
+        region=${!i}
     fi
-
-done;
+done
 
 #Update packages
 printf "\\n\\n\\t### -> Update Packages\\n\\n"
@@ -74,52 +75,51 @@ printf "\\n\\n\\t### -> Enable the iptables bridge\\n\\n"
 echo "net.bridge.bridge-nf-call-iptables=1" | sudo tee -a /etc/sysctl.conf
 sudo sysctl -p
 
-if [ $type = "master" ]
-    then 
-        printf "\\n\\n\\t### -> I'm the Master Node!\\n\\n"
-        # Install and configure AWS account (need to upload config file)
-        printf "\\n\\n\\t### -> Install and configure AWS account (need to upload config file)!\\n\\n"
-        sudo apt install -y unzip
-        curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
-        unzip awscliv2.zip
-        sudo ./aws/install
-        aws configure set aws_access_key_id AKIARPIPWM5GVPWQYL3W 
-        aws configure set aws_secret_access_key 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 
-        aws configure set region us-west-2
+if [ $type = "master" ]; then
+    printf "\\n\\n\\t### -> I'm the Master Node!\\n\\n"
+    # Install and configure AWS account (need to upload config file)
+    printf "\\n\\n\\t### -> Install and configure AWS account (need to upload config file)!\\n\\n"
+    sudo apt install -y unzip
+    curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+    unzip awscliv2.zip
+    sudo ./aws/install
+    aws configure set aws_access_key_id AKIARPIPWM5GVPWQYL3W
+    aws configure set aws_secret_access_key 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
+    aws configure set region us-west-2
 
-        # Run init kube
-        printf "\\n\\n\\t### -> Run init kube\\n\\n"
-        sudo kubeadm init --pod-network-cidr=10.244.0.0/16 --ignore-preflight-errors=NumCPU
-        mkdir -p $HOME/.kube
-        sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
-        sudo chown $(id -u):$(id -g) $HOME/.kube/config
+    # Run init kube
+    printf "\\n\\n\\t### -> Run init kube\\n\\n"
+    sudo kubeadm init --pod-network-cidr=10.244.0.0/16 --ignore-preflight-errors=NumCPU
+    mkdir -p $HOME/.kube
+    sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
+    sudo chown $(id -u):$(id -g) $HOME/.kube/config
 
-        # Create join Command
-        printf "\\n\\n\\t### -> Create join Command\\n\\n"
-        curl "https://raw.githubusercontent.com/danilojpferreira/tarc_final/main/config_kube.yml" -o "config_kube.yml"
-        ansible-playbook ./config_kube.yml
-        
-        # Set Flannel network add on.
-        printf "\\n\\n\\t### -> Set Flannel network add on\\n\\n"
-        kubectl apply -f https://raw.githubusercontent.com/coreos/flannel/master/Documentation/kube-flannel.yml
+    # Create join Command
+    printf "\\n\\n\\t### -> Create join Command\\n\\n"
+    curl "https://raw.githubusercontent.com/danilojpferreira/tarc_final/main/config_kube.yml" -o "config_kube.yml"
+    ansible-playbook ./config_kube.yml
 
-        # Upload join file
-        printf "\\n\\n\\t### -> Upload join file\\n\\n"
-        aws s3 cp "./join-command.sh" s3://tarc-final/join-command.sh
+    # Set Flannel network add on.
+    printf "\\n\\n\\t### -> Set Flannel network add on\\n\\n"
+    kubectl apply -f https://raw.githubusercontent.com/coreos/flannel/master/Documentation/kube-flannel.yml
 
-        # Run Pods
-        printf "\\n\\n\\t### -> Run Pods\\n\\n"
-        curl "https://raw.githubusercontent.com/danilojpferreira/tarc_final/main/run-pods.sh" -o "run-pods.sh"
-        sudo sh ./run-pods.sh
+    # Upload join file
+    printf "\\n\\n\\t### -> Upload join file\\n\\n"
+    aws s3 cp "./join-command.sh" s3://tarc-final/join-command.sh
 
-        # Create others instances
-        for counter in {1..$workers}; do 
-            aws ec2 run-instances --image-id ami-0885b1f6bd170450c --count 1 --instance-type $instanceType --key-name $keyName --security-group-ids $securityGroups --subnet-id $subnetId --tag-specifications "ResourceType=instance,Tags=[{Key=nodeType,Value=worker},{Key=nodeReference,Value=$counter}]" "ResourceType=volume,Tags=[{Key=nodeType,Value=worker},{Key=nodeReference,Value=$counter}]" --user-data file://launch.sh.txt
-        done
-    else
-        printf "\\n\\n\\t### -> I'm a Worker Node!\\n\\n"
-        printf "\\n\\n\\t### -> Getting Join File\\n\\n"
-        curl "https://tarc-final.s3.amazonaws.com/join-command.sh" -o "join-command.sh"
-        printf "\\n\\n\\t### -> Joing\\n\\n"
-        sudo sh ./join-command.sh
+    # Run Pods
+    printf "\\n\\n\\t### -> Run Pods\\n\\n"
+    curl "https://raw.githubusercontent.com/danilojpferreira/tarc_final/main/run-pods.sh" -o "run-pods.sh"
+    sudo sh ./run-pods.sh
+
+    # Create others instances
+    for counter in {1..$workers}; do
+        aws ec2 run-instances --region $region --image-id ami-0885b1f6bd170450c --count 1 --instance-type $instanceType --key-name $keyName --security-group-ids $securityGroups --subnet-id $subnetId --tag-specifications "ResourceType=instance,Tags=[{Key=nodeType,Value=worker},{Key=nodeReference,Value=$counter}]" "ResourceType=volume,Tags=[{Key=nodeType,Value=worker},{Key=nodeReference,Value=$counter}]" --user-data file://launch.sh.txt
+    done
+else
+    printf "\\n\\n\\t### -> I'm a Worker Node!\\n\\n"
+    printf "\\n\\n\\t### -> Getting Join File\\n\\n"
+    curl "https://tarc-final.s3.amazonaws.com/join-command.sh" -o "join-command.sh"
+    printf "\\n\\n\\t### -> Joing\\n\\n"
+    sudo sh ./join-command.sh
 fi
