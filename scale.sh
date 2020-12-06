@@ -11,7 +11,7 @@ for ((i=1;i<=$#;i++));
 do
     if [ ${!i} = "--incrementWorkers" ];
     then ((i++)) 
-        incrementWorkers=$(expr ${!i} + 0);  
+        incrementWorkers=$((${!i}+0));  
 
     elif [ ${!i} = "--instanceType" ];
     then ((i++)) 
@@ -45,10 +45,10 @@ then
         instance=$(aws ec2 describe-instances --region $region --filters "Name=tag:hash,Values=$random" --query Reservations[*].Instances[*].[InstanceId] --output text)
         sleep 60
         aws elbv2 register-targets --region $region --target-group-arn arn:aws:elasticloadbalancing:us-east-1:807587852252:targetgroup/TARC-TARGET-GROUP/a499ba73d38018c2 --targets Id=$instance
-    done
+    done;
 
 else
-    inverted=$incrementWorkers*-1
+    inverted=$(($incrementWorkers*-1))
     instances=$(aws ec2 describe-instances --region $region --filters "Name=tag:nodeType,Values=worker" --max-items $inverted --query Reservations[*].Instances[*].[InstanceId] --output text)
     aws ec2 terminate-instances  --region $region --instance-ids $instances
 fi
