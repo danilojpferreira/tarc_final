@@ -4,9 +4,9 @@ type=node
 workers=1
 instanceType=t2.micro
 subnetId=subnet-3a0b891b
-keyName=tarc_key
+keyName=TARC_KEY
 region=us-east-1
-securityGroups="sg-06e184115cac1dcc6 sg-b6276e83"
+securityGroups=sg-46d3de73
 
 for ((i = 1; i <= $#; i++)); do
     if [ ${!i} = "--type" ]; then
@@ -36,6 +36,14 @@ for ((i = 1; i <= $#; i++)); do
     elif [ ${!i} = "--region" ]; then
         ((i++))
         region=${!i}
+
+    elif [ ${!i} = "--aws-key" ]; then
+        ((i++))
+        awsKey=${!i}
+
+    elif [ ${!i} = "--aws-pass" ]; then
+        ((i++))
+        awsPass=${!i}
     fi
 done
 
@@ -83,13 +91,13 @@ if [ $type = "master" ]; then
     curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
     unzip awscliv2.zip
     sudo ./aws/install
-    aws configure set aws_access_key_id AKIARPIPWM5GVPWQYL3W
-    aws configure set aws_secret_access_key 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
-    aws configure set region us-east-1
+    aws configure set aws_access_key_id $awsKey
+    aws configure set aws_secret_access_key $awsPass
+    aws configure set region $region
 
     # Run init kube
     printf "\\n\\n\\t### -> Run init kube\\n\\n"
-    sudo kubeadm init --pod-network-cidr=10.244.0.0/16 --ignore-preflight-errors=NumCPU
+    sudo kubeadm init --pod-network-cidr=10.244.0.0/16 #--ignore-preflight-errors=NumCPU
     mkdir -p $HOME/.kube
     sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
     sudo chown $(id -u):$(id -g) $HOME/.kube/config
@@ -105,7 +113,7 @@ if [ $type = "master" ]; then
 
     # Upload join file
     printf "\\n\\n\\t### -> Upload join file\\n\\n"
-    aws s3 cp "./join-command.sh" s3://tarc-final/join-command.sh
+    aws s3 cp "./join-command.sh" s3://tarc-bucket/join-command.sh
 
     # Run Pods
     printf "\\n\\n\\t### -> Run Pods\\n\\n"
@@ -114,14 +122,14 @@ if [ $type = "master" ]; then
 
     # Create others instances
     for counter in {1..$workers}; do
-        aws ec2 run-instances --region $region --image-id ami-0885b1f6bd170450c --count 1 --instance-type $instanceType --key-name $keyName --security-group-ids $securityGroups --subnet-id $subnetId --tag-specifications "ResourceType=instance,Tags=[{Key=tarc,Value=true},{Key=nodeType,Value=worker},{Key=nodeReference,Value=$counter}]" "ResourceType=volume,Tags=[{Key=tarc,Value=true},{Key=nodeType,Value=worker},{Key=nodeReference,Value=$counter}]" --user-data file://launch.sh
+        aws ec2 run-instances --region $region --image-id ami-0885b1f6bd170450c --count 1 --instance-type $instanceType --key-name $keyName --security-group-ids $securityGroups --subnet-id $subnetId --tag-specifications "ResourceType=instance,Tags=[{Key=TARC,Value=true},{Key=nodeType,Value=worker},{Key=nodeReference,Value=$counter}]" "ResourceType=volume,Tags=[{Key=TARC,Value=true},{Key=nodeType,Value=worker},{Key=nodeReference,Value=$counter}]" --user-data file://launch.sh
         instance=$(aws ec2 describe-instances --region $region --filters "Name=tag:nodeReference,Values=$counter" --query Reservations[*].Instances[*].[InstanceId] --output text)
-        aws elbv2 register-targets --target-group-arn arn:aws:elasticloadbalancing:us-east-1:101501527885:targetgroup/all-instances/4d9b97f60837a331 --targets Id=$instance
+        aws elbv2 register-targets --target-group-arn arn:aws:elasticloadbalancing:us-east-1:807587852252:targetgroup/TARC-TARGET-GROUP/a499ba73d38018c2 --targets Id=$instance
     done
 else
     printf "\\n\\n\\t### -> I'm a Worker Node!\\n\\n"
     printf "\\n\\n\\t### -> Getting Join File\\n\\n"
-    curl "https://tarc-final.s3.amazonaws.com/join-command.sh" -o "join-command.sh"
+    curl "https://tarc-bucket.s3.amazonaws.com/join-command.sh" -o "join-command.sh"
     printf "\\n\\n\\t### -> Joing\\n\\n"
     sudo sh ./join-command.sh
 fi
