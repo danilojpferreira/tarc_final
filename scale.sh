@@ -39,8 +39,9 @@ if [ $incrementWorkers > 0]
 then
     curl "https://raw.githubusercontent.com/danilojpferreira/tarc_final/main/launch.sh" -o "launch.sh"
     for counter in `seq 1 $incrementWorkers`; do
-        aws ec2 run-instances --region $region --image-id ami-0885b1f6bd170450c --count 1 --instance-type $instanceType --key-name $keyName --security-group-ids $securityGroups --subnet-id $subnetId --tag-specifications "ResourceType=instance,Tags=[{Key=TARC,Value=true},{Key=nodeType,Value=worker},{Key=nodeReference,Value=$counter}]" --user-data file://launch.sh
-        instance=$(aws ec2 describe-instances --region $region --filters "Name=tag:nodeReference,Values=$counter" --query Reservations[*].Instances[*].[InstanceId] --output text)
+        random=$(cat /dev/urandom | tr -dc '0-9' | fold -w 256 | head -n 1 | sed -e 's/^0*//' | head --bytes 3)
+        aws ec2 run-instances --region $region --image-id ami-0885b1f6bd170450c --count 1 --instance-type $instanceType --key-name $keyName --security-group-ids $securityGroups --subnet-id $subnetId --tag-specifications "ResourceType=instance,Tags=[{Key=hash,Value=$random},{Key=TARC,Value=true},{Key=nodeType,Value=worker}]" --user-data file://launch.sh
+        instance=$(aws ec2 describe-instances --region $region --filters "Name=tag:hash,Values=$random" --query Reservations[*].Instances[*].[InstanceId] --output text)
         aws elbv2 register-targets --region $region --target-group-arn arn:aws:elasticloadbalancing:us-east-1:807587852252:targetgroup/TARC-TARGET-GROUP/a499ba73d38018c2 --targets Id=$instance
     done
 
