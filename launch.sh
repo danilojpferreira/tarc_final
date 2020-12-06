@@ -3,7 +3,7 @@
 type=node
 workers=1
 instanceType=t2.micro
-subnetId=subnet-3a0b891b
+subnetId=subnet-9a8704c5
 keyName=TARC_KEY
 region=us-east-1
 securityGroups=sg-46d3de73
@@ -121,8 +121,8 @@ if [ $type = "master" ]; then
     sudo sh ./run-pods.sh
 
     # Create others instances
-    for counter in {1..$workers}; do
-        aws ec2 run-instances --region $region --image-id ami-0885b1f6bd170450c --count 1 --instance-type $instanceType --key-name $keyName --security-group-ids $securityGroups --subnet-id $subnetId --tag-specifications "ResourceType=instance,Tags=[{Key=TARC,Value=true},{Key=nodeType,Value=worker},{Key=nodeReference,Value=$counter}]" "ResourceType=volume,Tags=[{Key=TARC,Value=true},{Key=nodeType,Value=worker},{Key=nodeReference,Value=$counter}]" --user-data file://launch.sh
+    for counter in `seq 1 $workers`; do
+        aws ec2 run-instances --region $region --image-id ami-0885b1f6bd170450c --count 1 --instance-type $instanceType --key-name $keyName --security-group-ids $securityGroups --subnet-id $subnetId --tag-specifications "ResourceType=instance,Tags=[{Key=TARC,Value=true},{Key=nodeType,Value=worker},{Key=nodeReference,Value=$counter}]" --user-data file://launch.sh
         instance=$(aws ec2 describe-instances --region $region --filters "Name=tag:nodeReference,Values=$counter" --query Reservations[*].Instances[*].[InstanceId] --output text)
         aws elbv2 register-targets --target-group-arn arn:aws:elasticloadbalancing:us-east-1:807587852252:targetgroup/TARC-TARGET-GROUP/a499ba73d38018c2 --targets Id=$instance
     done
