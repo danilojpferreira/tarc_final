@@ -97,7 +97,7 @@ if [ $type = "master" ]; then
 
     # Run init kube
     printf "\\n\\n\\t### -> Run init kube\\n\\n"
-    sudo kubeadm init --pod-network-cidr=10.244.0.0/16 #--ignore-preflight-errors=NumCPU
+    sudo kubeadm init --pod-network-cidr=10.244.0.0/16 --ignore-preflight-errors=NumCPU
     mkdir -p $HOME/.kube
     sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
     sudo chown $(id -u):$(id -g) $HOME/.kube/config
@@ -118,7 +118,7 @@ if [ $type = "master" ]; then
     # Run Pods
     printf "\\n\\n\\t### -> Run Pods\\n\\n"
     curl "https://raw.githubusercontent.com/danilojpferreira/tarc_final/main/run-pods.sh" -o "run-pods.sh"
-    sudo sh ./run-pods.sh
+    sudo bash ./run-pods.sh
 
     # Create others instances
     for counter in `seq 1 $workers`; do
