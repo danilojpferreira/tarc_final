@@ -9,9 +9,9 @@ securityGroups=sg-46d3de73
 
 for ((i=1;i<=$#;i++)); 
 do
-    elif [ ${!i} = "--incrementWorkers" ];
+    if [ ${!i} = "--incrementWorkers" ];
     then ((i++)) 
-        incrementWorkers=${!i};  
+        incrementWorkers=$(expr ${!i} + 0);  
 
     elif [ ${!i} = "--instanceType" ];
     then ((i++)) 
@@ -35,7 +35,7 @@ do
     fi
 done;
 
-if [ $incrementWorkers > 0] 
+if [ $incrementWorkers -gt 0 ] 
 then
     curl "https://raw.githubusercontent.com/danilojpferreira/tarc_final/main/launch.sh" -o "launch.sh"
     for counter in `seq 1 $incrementWorkers`; do
